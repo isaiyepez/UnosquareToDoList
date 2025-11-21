@@ -6,13 +6,10 @@ namespace RestAPI
     public class AppDbContext : DbContext
     {
 
-        private readonly IConfiguration _configuration;
-
-
-        public AppDbContext(DbContextOptions<AppDbContext> options, IConfiguration configuration)
+        public AppDbContext(DbContextOptions<AppDbContext> options)
             : base(options)
         {
-            _configuration = configuration;
+
         }
 
         public DbSet<User> Users { get; set; }

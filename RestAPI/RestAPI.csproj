@@ -28,9 +28,4 @@
     <ProjectReference Include="..\Models\Entities.csproj" />
   </ItemGroup>
 
-	<ItemGroup>
-		<InternalsVisibleTo Include="ToDoListIntegrationTests" />
-	</ItemGroup>
-
-
 </Project>
