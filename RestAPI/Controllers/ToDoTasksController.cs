@@ -1,4 +1,5 @@
 ﻿using Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,9 +18,19 @@ namespace RestAPI.Controllers
 
         // GET: api/ToDoTasks
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ToDoTask>>> GetTasks()
+        public async Task<ActionResult<IEnumerable<ToDoTask>>> GetTasks([FromQuery] int? userId)
         {
-            return await _context.Tasks.ToListAsync();
+            if (userId.HasValue)
+            {
+                var tasksForUser = await _context.Tasks
+                    .Where(task => task.UserId == userId.Value)
+                    .ToListAsync();
+
+                return Ok(tasksForUser);
+            }
+
+            var allTasks = await _context.Tasks.ToListAsync();
+            return Ok(allTasks);
         }
 
         // GET: api/ToDoTasks/5
@@ -41,6 +52,12 @@ namespace RestAPI.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> PutToDoTask(int id, ToDoTask toDoTask)
         {
+            //Poner FromRoute para el ID y el objeto FROMBody
+
+            //Primero not found 
+
+            //Meterle middleware de global exceptions
+
             if (id != toDoTask.Id)
             {
                 return BadRequest();

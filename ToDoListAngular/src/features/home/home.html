@@ -1,0 +1,68 @@
+@if (userId > 0) {
+      <div class="p-4 max-w-xl mx-auto pt-22">
+        <h2 class="text-2xl font-semibold mb-4">Your Tasks</h2>
+
+        <div class="mb-6 flex gap-2">
+          <input
+            [(ngModel)]="newTaskTitle"
+            (keyup.enter)="addTask()"
+            placeholder="What needs to be done?"
+            class="input input-bordered grow"
+          />
+          <button (click)="addTask()" class="btn btn-primary" [disabled]="!newTaskTitle.trim()">
+            Add
+          </button>
+        </div>
+
+        @if (isLoading()) {
+          <div class="flex justify-center p-4">
+            <span class="loading loading-spinner loading-md"></span>
+          </div>
+        }
+        @else if (tasksSignal().length > 0) {
+          <ul class="menu bg-base-100 rounded-box shadow-sm border border-base-200">
+            @for (task of tasksSignal(); track task.id) {
+              <li class="border-b last:border-none border-base-200">
+                <div class="flex items-center justify-between p-2">
+
+                  <label class="cursor-pointer flex items-center gap-3 grow">
+                    <input
+                      type="checkbox"
+                      class="checkbox checkbox-primary"
+                      [checked]="task.isDone"
+                      (change)="toggleTaskDone(task)"
+                    />
+                    <span [class.line-through]="task.isDone" [class.text-gray-400]="task.isDone">
+                      {{ task.title }}
+                    </span>
+                  </label>
+
+                  <button
+                    (click)="deleteTask(task)"
+                    class="btn btn-ghost btn-sm text-error hover:bg-error/10"
+                    title="Delete Task">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456-1.28a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                    </svg>
+                  </button>
+                </div>
+              </li>
+            }
+          </ul>
+        }
+        @else {
+
+          <div class="text-center py-10 bg-base-100 rounded-box border border-dashed border-base-300">
+            <p class="text-gray-500">No tasks yet. Add one above!</p>
+          </div>
+        }
+      </div>
+    }
+
+    @if (registerMode()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white p-6 rounded-lg">
+           <app-register (cancelRegister)="showRegister(false)"></app-register>
+        </div>
+      </div>
+    }
