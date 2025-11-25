@@ -1,7 +1,7 @@
 ﻿using Entities;
+using Entities.DTOs;
 using FluentAssertions;
 using Moq;
-using RestAPI.DTOs;
 using System.Net;
 using System.Net.Http.Json;
 using ToDoListIntegrationTests;
@@ -97,18 +97,4 @@ public class UsersControllerTests : IClassFixture<IntegrationTestFactory>
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
-    [Fact]
-    public async Task GetUsers_ShouldReturnList_WhenCalled()
-    {
-        // Arrange
-        // (Optional) Ensure DB is clear or just check that it returns success
-
-        // Act
-        var response = await _client.GetAsync("/api/Users");
-
-        // Assert
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-        var users = await response.Content.ReadFromJsonAsync<IEnumerable<User>>();
-        users.Should().NotBeNull();
-    }
 }

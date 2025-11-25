@@ -1,6 +1,6 @@
 ﻿using Entities;
 
-namespace RestAPI.Interfaces
+namespace BusinessLogic.Contracts
 {
     public interface ITokenService
     {

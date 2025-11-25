@@ -1,8 +1,8 @@
-﻿using Entities;
-using RestAPI.DTOs;
-using RestAPI.Interfaces;
+﻿using BusinessLogic.Contracts;
+using Entities;
+using Entities.DTOs;
 
-namespace RestAPI.Extensions
+namespace BusinessLogic.Extensions
 {
     public static class UserExtensions
     {

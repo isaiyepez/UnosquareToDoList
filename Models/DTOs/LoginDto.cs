@@ -1,4 +1,4 @@
-﻿namespace RestAPI.DTOs
+﻿namespace Entities.DTOs
 {
     public class LoginDto
     {

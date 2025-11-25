@@ -1,11 +1,12 @@
-﻿using Entities;
+﻿using BusinessLogic.Contracts;
+using Entities;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using RestAPI.Interfaces;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace RestAPI.Services
+namespace BusinessLogic.Services
 {
     public class TokenService(IConfiguration config) : ITokenService
     {

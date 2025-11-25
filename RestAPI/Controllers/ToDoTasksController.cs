@@ -1,84 +1,80 @@
-﻿using Entities;
+﻿using BusinessLogic.Contracts;
+using Entities;
+using Entities.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace RestAPI.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ToDoTasksController : ControllerBase
     {
-        private readonly AppDbContext _context;
-
-        public ToDoTasksController(AppDbContext context)
+        private readonly IToDoTaskService _toDoTaskService;
+        public ToDoTasksController(IToDoTaskService toDoTaskService)
         {
-            _context = context;
+            _toDoTaskService = toDoTaskService;
         }
 
         // GET: api/ToDoTasks
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ToDoTask>>> GetTasks([FromQuery] int? userId)
+        public async Task<ActionResult<IEnumerable<ToDoTaskDto>>> GetTasksListAsync(
+            [FromQuery] int? userId, 
+            [FromQuery] int skip = 0, 
+            [FromQuery] int take = 20)
         {
-            if (userId.HasValue)
+            if (!userId.HasValue)
             {
-                var tasksForUser = await _context.Tasks
-                    .Where(task => task.UserId == userId.Value)
-                    .ToListAsync();
-
-                return Ok(tasksForUser);
+                return BadRequest("UserId query parameter must be provided.");
             }
 
-            var allTasks = await _context.Tasks.ToListAsync();
-            return Ok(allTasks);
+            if (take < 1 || take > 100) // Optional safeguard on page size
+            {
+                return BadRequest("Take must be between 1 and 100.");
+            }
+
+            var tasksForUser = await _toDoTaskService.GetToDoTasksListAsync(userId.Value, skip, take);
+
+            return Ok(tasksForUser);
         }
+
 
         // GET: api/ToDoTasks/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<ToDoTask>> GetToDoTask(int id)
+        public async Task<ActionResult<ToDoTaskDto>> GetToDoTaskByIdAsync(int id)
         {
-            var toDoTask = await _context.Tasks.FindAsync(id);
+            if (id <= 0)
+            {
+                return BadRequest("Id must be a positive integer.");
+            }
+
+            var toDoTask = await _toDoTaskService.GetToDoTaskByIdAsync(id);
 
             if (toDoTask == null)
             {
                 return NotFound();
             }
 
-            return toDoTask;
+            return Ok(toDoTask);
         }
 
         // PUT: api/ToDoTasks/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutToDoTask(int id, ToDoTask toDoTask)
+        public async Task<IActionResult> UpdateToDoTask([FromRoute] int id, [FromBody] ToDoTaskDto toDoTask)
         {
-            //Poner FromRoute para el ID y el objeto FROMBody
-
-            //Primero not found 
-
-            //Meterle middleware de global exceptions
-
             if (id != toDoTask.Id)
             {
-                return BadRequest();
+                return BadRequest("Id in URL does not match Id in body.");
             }
 
-            _context.Entry(toDoTask).State = EntityState.Modified;
+            var updateSucceeded = await _toDoTaskService
+                .UpdateToDoTaskAsync(toDoTask);
 
-            try
+            if (!updateSucceeded)
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ToDoTaskExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return NotFound("Task with given id was not found");
             }
 
             return NoContent();
@@ -87,33 +83,28 @@ namespace RestAPI.Controllers
         // POST: api/ToDoTasks
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<ToDoTask>> PostToDoTask(ToDoTask toDoTask)
+        public async Task<ActionResult<ToDoTaskDto>> PostToDoTask([FromBody] ToDoTaskDto toDoTaskDto)
         {
-            _context.Tasks.Add(toDoTask);
-            await _context.SaveChangesAsync();
+            var createdToDoTask = await _toDoTaskService.AddToDoTaskAsync(toDoTaskDto);
 
-            return CreatedAtAction("GetToDoTask", new { id = toDoTask.Id }, toDoTask);
+            if (createdToDoTask == null)
+            {
+                return BadRequest("A task with the same title already exists for this user.");
+            }
+
+            return CreatedAtAction(nameof(GetToDoTaskByIdAsync), new { id = createdToDoTask.Id }, createdToDoTask);
         }
 
         // DELETE: api/ToDoTasks/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteToDoTask(int id)
         {
-            var toDoTask = await _context.Tasks.FindAsync(id);
-            if (toDoTask == null)
+            if (!await _toDoTaskService.DeleteToDoTaskAsync(id))
             {
                 return NotFound();
             }
 
-            _context.Tasks.Remove(toDoTask);
-            await _context.SaveChangesAsync();
-
             return NoContent();
-        }
-
-        private bool ToDoTaskExists(int id)
-        {
-            return _context.Tasks.Any(e => e.Id == id);
         }
     }
 }
