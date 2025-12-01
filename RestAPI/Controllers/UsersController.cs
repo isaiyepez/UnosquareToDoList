@@ -2,9 +2,8 @@
 using BusinessLogic.Extensions;
 using Entities.DTOs;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace RestAPI.Controllers
 {
@@ -24,46 +23,70 @@ namespace RestAPI.Controllers
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
-            var user = await _userService.GetUserFromEmailAsync(loginDto.Email);
+            if (string.IsNullOrEmpty(loginDto.Email) || string.IsNullOrEmpty(loginDto.Password))
+                return BadRequest("Email and password must be provided.");
 
-            if (user == null)
+            var userDto = await _userService.ValidateUserCredentialsAsync(loginDto.Email, loginDto.Password);
+
+            if (userDto == null)
             {
                 return Unauthorized("Invalid credentials");
             }
 
-            using var hmac = new HMACSHA512(user.PasswordSalt);
-
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
-
-            for (int i = 0; i < computedHash.Length; i++)
-            {
-                if (computedHash[i] != user.PasswordHash[i])
-                {
-                    return Unauthorized("Invalid password");
-                }
-            }
-
-            return user.ToDto(_tokenService);
+            return userDto;
         }
 
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
+
+        [HttpPatch("{id}")]
         [Authorize]
-        public async Task<IActionResult> PutUser(UserDto userDto)
+        public async Task<IActionResult> PatchUser(int id, [FromBody] JsonPatchDocument<UserDto> patchDoc)
         {
+            if (patchDoc == null)
+            {
+                return BadRequest();
+            }
+
+            var user = await _userService.GetUserFromIdAsync(id);
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var userDto = user.ToDto(_tokenService);
+
+            patchDoc.ApplyTo(userDto, ModelState);
+
+            if (!TryValidateModel(userDto))
+            {
+                return ValidationProblem(ModelState);
+            }
+
             await _userService.UpdateUserAsync(userDto);
 
             return NoContent();
         }
 
+
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<UserDto?>> PostUser(RegisterDto registerDto)
+        public async Task<ActionResult<UserDto>> PostUser(RegisterDto registerDto)
         {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return await _userService.AddUserAsync(registerDto);
+            var userDto = await _userService.AddUserAsync(registerDto);
+
+            if (userDto == null)
+            {
+                // User already exists
+                return Conflict("A user with this email already exists.");
+            }
+
+            // Return 201 Created
+            return Created(string.Empty, userDto);
         }
 
         // DELETE: api/Users/5
@@ -71,9 +94,21 @@ namespace RestAPI.Controllers
         [Authorize]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            await _userService.DeleteUserAsync(id);
+            var user = await _userService.GetUserFromIdAsync(id);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+
+            if (!await _userService.DeleteUserAsync(id))
+            {
+                return NotFound();
+            }
 
             return NoContent();
         }
+
     }
 }

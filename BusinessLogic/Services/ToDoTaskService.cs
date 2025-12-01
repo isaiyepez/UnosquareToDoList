@@ -77,7 +77,6 @@ namespace BusinessLogic.Services
                 .ToListAsync();
         }
 
-
         public async Task<bool> UpdateToDoTaskAsync(ToDoTaskDto toDoTask)
         {
             var toDoTaskToUpdate = await _appDbContext

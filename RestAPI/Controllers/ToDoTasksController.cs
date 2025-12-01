@@ -1,5 +1,4 @@
 ﻿using BusinessLogic.Contracts;
-using Entities;
 using Entities.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,7 +40,7 @@ namespace RestAPI.Controllers
 
 
         // GET: api/ToDoTasks/5
-        [HttpGet("{id}")]
+        [HttpGet("{id}", Name = "GetToDoTaskById")]
         public async Task<ActionResult<ToDoTaskDto>> GetToDoTaskByIdAsync(int id)
         {
             if (id <= 0)
@@ -92,7 +91,7 @@ namespace RestAPI.Controllers
                 return BadRequest("A task with the same title already exists for this user.");
             }
 
-            return CreatedAtAction(nameof(GetToDoTaskByIdAsync), new { id = createdToDoTask.Id }, createdToDoTask);
+            return CreatedAtRoute("GetToDoTaskById", new { id = createdToDoTask.Id }, createdToDoTask);
         }
 
         // DELETE: api/ToDoTasks/5

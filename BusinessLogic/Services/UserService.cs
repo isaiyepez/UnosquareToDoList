@@ -33,7 +33,7 @@ namespace BusinessLogic.Services
             var user = new User
             {
                 DisplayName = registerDto.DisplayName,
-                Email = registerDto.Email,
+                Email = registerDto.Email.ToLowerInvariant(),
                 PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(registerDto.Password)),
                 PasswordSalt = hmac.Key
             };
@@ -44,35 +44,59 @@ namespace BusinessLogic.Services
             return user.ToDto(_tokenService);
         }
 
-        public async Task DeleteUserAsync(int userId)
+        public async Task<bool> DeleteUserAsync(int userId)
         {
             var user = await _context.Users.FindAsync(userId);
 
-            if (user != null)
+            if (user == null) return false;
+
+            _context.Users.Remove(user);
+
+            try
             {
-                _context.Users.Remove(user);
                 await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException)
+            {
+                // Log exception or handle conflicts
+                return false;
             }
         }
 
-        public async Task<User?> GetUserFromEmailAsync(string email)
+
+        public async Task<UserDto?> ValidateUserCredentialsAsync(string email, string password)
+        {
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Email == email);
+            if (user == null) return null;
+
+            using var hmac = new HMACSHA512(user.PasswordSalt);
+            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(password));
+
+            if (!CryptographicOperations.FixedTimeEquals(computedHash, user.PasswordHash))
+            {
+                return null;
+            }
+
+            return user.ToDto(_tokenService);
+        }
+
+        public async Task<User?> GetUserFromIdAsync(int id)
         {
             return await _context.Users
-                 .SingleOrDefaultAsync(u => u.Email == email);
+                .SingleOrDefaultAsync(user => user.Id == id);
         }
 
         public async Task UpdateUserAsync(UserDto userDto)
         {
             var user = await _context.Users.FindAsync(userDto.Id);
+            if (user == null) return;
 
-            if (user != null)
-            {
-                user.DisplayName = userDto.DisplayName;
+            user.DisplayName = userDto.DisplayName ?? user.DisplayName;
 
-                _context.Users.Update(user);
+            _context.Users.Update(user);
 
-                await _context.SaveChangesAsync();
-            }
+            await _context.SaveChangesAsync();
         }
 
         private async Task<bool> UserExistsAsync(string email)
